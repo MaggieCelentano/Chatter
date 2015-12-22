@@ -115,12 +115,18 @@ public class Server
 
          return outputStreams.elements();
 
+
+      }
+
+      Enumeration getKeys()
+      {
+          return outputStreams.keys();
       }
 
 
    // Send a message to all clients (utility routine)
 
-     void sendToAll( String message )
+     void sendToAll( String message, int x ) throws IOException
      {
 
      // We synchronize on this because another thread might be
@@ -133,16 +139,21 @@ public class Server
 
      // For each client ...
 
-     for (Enumeration e = getOutputStreams(); e.hasMoreElements(); ) {
-              // ... get the output stream ...
+     for (Enumeration e = getOutputStreams(), f = getKeys(); e.hasMoreElements(); ) {
+             
+               //Socket aSocket = (Socket)e.nextElement();
+
+
+                 // ... get the output stream ...
+
+               //DataOutputStream dout = aSocket.getOutputStream();
 
                DataOutputStream dout = (DataOutputStream)e.nextElement();
-
-               // ... and send the message
-
+               Socket aSocket = (Socket)f.nextElement();
+                 // ... and send the message
                 try {
-
-                dout.writeUTF( message );
+                if(aSocket.getPort() != x )
+                    dout.writeUTF( message );
 
                 } catch( IOException ie )
                 {
@@ -195,4 +206,5 @@ public class Server
 
 
     }//end Server class
+
 
