@@ -18,6 +18,7 @@ import java.awt.event.*;
 import java.io.*;
 
 import java.net.*;
+import javax.swing.*;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -26,12 +27,12 @@ public class Client implements Runnable
 {
    // Components for the visual display of the chat windows
 
-    private TextField tf = new TextField();
+    private JTextField tf = new JTextField();
 
-    private TextArea ta = new TextArea();
+    private JEditorPane ta = new JEditorPane();
 
     //1. Create the frame.
-    private JFrame frame = new JFrame("FrameDemo");
+    private JFrame frame = new JFrame("Chatter");
 
 
     
@@ -55,9 +56,20 @@ public class Client implements Runnable
 
       // Set up the screen
 
+      ta.setBackground(Color.CYAN);
+      tf.setBackground(Color.GRAY);
+      //ta.setLineWrap(true);
+
+      //ta.setWrapStyleWord(true);
+      ta.setEditable(false);
+      //ta.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+
+      frame.setPreferredSize(new Dimension(300, 200));
+
       frame.setLayout(new BorderLayout());
 
-      frame.add( "North", tf );
+      frame.add( "South", tf );
 
       frame.add( "Center", ta );
 
@@ -136,7 +148,7 @@ public class Client implements Runnable
          dout.writeUTF( message );
 
          // Clear out text input field
-
+         ta.setText("\t\t" + message + "\n");
          tf.setText( "" );
 
       }
@@ -161,11 +173,11 @@ public class Client implements Runnable
             // Get the next message
 
             String message = din.readUTF();
-
+            
 
             // Print it to our text window
-
-            ta.append( message+"\n" );
+            
+            ta.setText(message + "\n");
 
          }
 
