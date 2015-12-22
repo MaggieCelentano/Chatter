@@ -64,7 +64,7 @@ public class ServerThread extends Thread
 
             // ... and have the server send it to all clients
 
-            server.sendToAll(message);
+            server.sendToAll(message,socket.getPort());
 
           }
 
@@ -72,8 +72,7 @@ public class ServerThread extends Thread
       catch(EOFException ie)
       {
 
-         // This doesn't need an error message
-
+         System.out.println("noooo!");
       }
       catch(IOException ie)
       {
@@ -94,6 +93,10 @@ public class ServerThread extends Thread
       }
     }//end run method
 }//end ServerThread class
+
+
+
+
 
 
 
