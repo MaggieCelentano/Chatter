@@ -25,6 +25,8 @@ public class Server
     // we want to write to a stream.
 
     private Hashtable outputStreams = new Hashtable();
+    private ArrayList<String> usernames = new ArrayList<String>();
+    private ArrayList<ServerThread> serverThreads = new ArrayList<ServerThread>();
 
     // Constructor and while-accept loop all in one.
 
@@ -79,7 +81,6 @@ public class Server
            
            Socket s = ss.accept();
 
-
            // Tell the world we've got it
 
            System.out.println("Connection from "+s);
@@ -91,7 +92,6 @@ public class Server
 
            DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 
-
            // Save this stream so we don't need to make it again
 
            outputStreams.put(s, dout);
@@ -101,7 +101,8 @@ public class Server
 
            // about it
 
-           new ServerThread(this, s);
+           ServerThread aServerThread = new ServerThread(this, s);
+           serverThreads.add(aServerThread);
         }
      }
 
@@ -153,7 +154,7 @@ public class Server
                  // ... and send the message
                 try {
                 if(aSocket.getPort() != x )
-                    dout.writeUTF( message );
+                    dout.writeUTF(message + "\t");
 
                 } catch( IOException ie )
                 {
@@ -204,7 +205,14 @@ public class Server
      }
      }
 
+     void addUsername(String username, int port)
+    {
+        //usernames.add(username);
+
+    }
 
     }//end Server class
+
+
 
 
