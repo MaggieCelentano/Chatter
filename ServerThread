@@ -56,7 +56,6 @@ public class ServerThread extends Thread
 
          DataInputStream din = new DataInputStream(socket.getInputStream());
 
-
          // Over and over, forever ...
          int counter = 0;
          while (true)
@@ -70,6 +69,8 @@ public class ServerThread extends Thread
             {
                 //server.addUsername(message,socket.getPort());
                 this.username = message;
+                server.addUsername(message);
+                server.getUsernames(socket);
                 counter++;
             }
             else
@@ -111,7 +112,17 @@ public class ServerThread extends Thread
    {
        return this.username;
    }
+
+    Socket getSocket() {
+        return this.socket;
+    }
+
+
 }//end ServerThread class
+
+
+
+
 
 
 
