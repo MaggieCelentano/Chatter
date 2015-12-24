@@ -28,19 +28,25 @@ public class Client implements Runnable
    // Components for the visual display of the chat windows
 
     private JTextField tf = new JTextField();
-
-    private JEditorPane ta = new JEditorPane();
-
-    //1. Create the frame.
+    private JTextArea ta = new JTextArea();
     private JFrame frame = new JFrame("Chatter");
 
+    private JFrame loginFrame = new JFrame("Login");
+    private JTextField loginText = new JTextField();
 
-    
-    // The socket connecting us to the server
+    private Button chatButton;
+
+    private String[] users = new String[5];
+
+    private String username;
+
+   JList list;
+
+   // The socket connecting us to the server
 
     private Socket socket;
 
-   // The streams we communicate to the server; these come
+    // The streams we communicate to the server; these come
 
     // from the socket
 
@@ -51,65 +57,14 @@ public class Client implements Runnable
 
    // Constructor
 
-   public Client(String host, int port)
+   public Client(final String host, final int port)
    {
-
-      // Set up the screen
-
-      ta.setBackground(Color.CYAN);
-      tf.setBackground(Color.GRAY);
-      //ta.setLineWrap(true);
-
-      //ta.setWrapStyleWord(true);
-      ta.setEditable(false);
-      //ta.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
-
-
-      frame.setPreferredSize(new Dimension(300, 200));
-
-      frame.setLayout(new BorderLayout());
-
-      frame.add( "South", tf );
-
-      frame.add( "Center", ta );
-
-      //What happens when the frame closes?
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-
-      //Size the frame.
-      frame.pack();
-
-      //Show it.
-      frame.setVisible(true);
-      
-
-
-      // We want to receive messages when someone types a line
-
-      // and hits return, using an anonymous class as
-
-      // a callback
-
-      tf.addActionListener(new ActionListener()
-      {
-
-         public void actionPerformed(ActionEvent e)
-         {
-
-             processMessage(e.getActionCommand());
-         }
-      });
-
-       // Connect to the server
-
        try
        {
 
          // Initiate the connection
 
          socket = new Socket(host, port);
-
 
          // We got a connection!  Tell the world
 
@@ -134,7 +89,96 @@ public class Client implements Runnable
        {
          System.out.println( ie );
        }
+
+       loginFrame.setPreferredSize(new Dimension(300, 200));
+       loginFrame.add("Center", loginText);
+       loginFrame.setVisible(true);
+
+      loginText.addActionListener(new ActionListener()
+      {
+
+         public void actionPerformed(ActionEvent e)
+         {
+
+             processLogin(e.getActionCommand());
+         }
+      });
+
    }//end Constructor
+
+   private void processLogin(String username)
+    {
+        try
+        {
+            dout.writeUTF(username);
+        }
+        catch( IOException ie )
+        {
+            System.out.println( ie );
+        }
+
+        this.username = username;
+        loginFrame.setVisible(false);
+
+        users[0] = username;
+        list = new JList(users);
+        list.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        list.setLayoutOrientation(JList.VERTICAL);
+        list.setVisibleRowCount(5);
+
+
+        JScrollPane listScroller = new JScrollPane(list);
+        listScroller.setPreferredSize(new Dimension(250, 80));
+        list.setVisible(true);
+        listScroller.setVisible(true);
+
+
+      ta.setBackground(Color.PINK);
+      tf.setBackground(Color.GRAY);
+      //ta.setLineWrap(true);
+
+      ta.setWrapStyleWord(true);
+      ta.setEditable(false);
+      //ta.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+
+      frame.setPreferredSize(new Dimension(300, 200));
+
+      frame.setLayout(new BorderLayout());
+
+      frame.add( "South", tf );
+
+      frame.add( "Center", ta );
+
+      frame.add("North",listScroller);
+
+      //What happens when the frame closes?
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+
+      //Size the frame.
+      frame.pack();
+
+      frame.setVisible(true);
+
+      // We want to receive messages when someone types a line
+
+      // and hits return, using an anonymous class as
+
+      // a callback
+
+      tf.addActionListener(new ActionListener()
+      {
+
+         public void actionPerformed(ActionEvent e)
+         {
+
+             processMessage(e.getActionCommand());
+         }
+      });
+
+       // Connect to the server
+   }
+
 
     // Gets called when the user types something
 
@@ -148,7 +192,7 @@ public class Client implements Runnable
          dout.writeUTF( message );
 
          // Clear out text input field
-         ta.setText("\t\t" + message + "\n");
+         ta.append("\t\t" + message + "\n");
          tf.setText( "" );
 
       }
@@ -177,7 +221,7 @@ public class Client implements Runnable
 
             // Print it to our text window
             
-            ta.setText(message + "\n");
+            ta.append(message + "\n");
 
          }
 
@@ -189,10 +233,17 @@ public class Client implements Runnable
 
     }
 
+    public String getUsername()
+    {
+        return this.username;
+    }
+
     public static void main(String[] args)
     {
         Client client = new Client("localhost",2400);
 
     }
 }//end Client class
+
+
 
