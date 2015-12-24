@@ -12,6 +12,8 @@ package chatter;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Server
 {
@@ -27,6 +29,7 @@ public class Server
     private Hashtable outputStreams = new Hashtable();
     private ArrayList<String> usernames = new ArrayList<String>();
     private ArrayList<ServerThread> serverThreads = new ArrayList<ServerThread>();
+    private int size = 0;
 
     // Constructor and while-accept loop all in one.
 
@@ -103,6 +106,7 @@ public class Server
 
            ServerThread aServerThread = new ServerThread(this, s);
            serverThreads.add(aServerThread);
+           size++;
         }
      }
 
@@ -169,7 +173,7 @@ public class Server
      // list.  This is usually called by a connection thread that has
 
      // discovered that the connectin to the client is dead.
-     void removeConnection( Socket s )
+     void removeConnection(Socket s)
      {
 
         // Synchronize so we don't mess up sendToAll() while it walks
@@ -185,6 +189,17 @@ public class Server
         // Remove it from our hashtable/list
 
         outputStreams.remove( s );
+
+        for(int i = 0; i<size; i++)
+        {
+            if(serverThreads.get(i).getSocket().getPort() == s.getPort());
+            {
+                serverThreads.remove(i);
+                break;
+            }
+        }
+
+        size--;
 
         // Make sure it's closed
 
@@ -205,13 +220,65 @@ public class Server
      }
      }
 
-     void addUsername(String username, int port)
+     void addUsername(String username)
     {
-        //usernames.add(username);
+        
+        for(int i = 0; i<size;i++)
+        {
+            Socket socket = serverThreads.get(i).getSocket();
+            DataOutputStream dout = null;
+            try
+            {
+                dout = new DataOutputStream(socket.getOutputStream());
+            }
+            catch (IOException ex)
+            {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
 
+                             // ... and send the message
+            try
+            {
+                dout.writeUTF("NEW USER" + username);
+
+            } catch( IOException ie )
+                {
+                  System.out.println( ie );
+                }
+
+        }
+    }
+
+     void getUsernames(Socket socket)
+    {
+         for(int i = 0; i<size-1;i++){
+
+            DataOutputStream dout = null;
+
+            try
+            {
+                dout = new DataOutputStream(socket.getOutputStream());
+            }
+            catch (IOException ex)
+            {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+                             // ... and send the message
+            try
+            {
+                dout.writeUTF("ADDING USERS" + serverThreads.get(i).getUsername());
+
+            } catch( IOException ie )
+                {
+                  System.out.println( ie );
+                }
+        }
     }
 
     }//end Server class
+
+
 
 
 
