@@ -26,7 +26,7 @@ public class Server
 
     // we want to write to a stream.
 
-    private Hashtable outputStreams = new Hashtable();
+    //private Hashtable outputStreams = new Hashtable();
     private ArrayList<String> usernames = new ArrayList<String>();
     private ArrayList<ServerThread> serverThreads = new ArrayList<ServerThread>();
     private int size = 0;
@@ -97,133 +97,121 @@ public class Server
 
            // Save this stream so we don't need to make it again
 
-           outputStreams.put(s, dout);
+           //outputStreams.put(s, dout);
 
 
            // Create a new thread for this connection, and then forget
 
            // about it
 
-           ServerThread aServerThread = new ServerThread(this, s);
+           ServerThread aServerThread = new ServerThread(this, s, dout);
            serverThreads.add(aServerThread);
            size++;
         }
      }
 
-     // Get an enumeration of all the OutputStreams, one for each client
-
-      // connected to us
-
-
-      Enumeration getOutputStreams()
-      {
-
-         return outputStreams.elements();
-
-
-      }
-
-      Enumeration getKeys()
-      {
-          return outputStreams.keys();
-      }
-
-
    // Send a message to all clients (utility routine)
 
-     void sendToAll( String message, int x ) throws IOException
+     void sendToAll(String message, int x) throws IOException
      {
 
      // We synchronize on this because another thread might be
-
      // calling removeConnection() and this would screw us up
-
      // as we tried to walk through the list
 
-     synchronized( outputStreams ) {
+     synchronized(serverThreads) {
 
-     // For each client ...
+         for(int i = 0; i<size;i++)
+         {
+             Socket aSocket = serverThreads.get(i).getSocket();
+             DataOutputStream dout = null;
+             if(aSocket.getPort() != x)
+             {
+             try
+                {
+                    dout = new DataOutputStream(aSocket.getOutputStream());
+                }
+                catch (IOException ex)
+                {
+                    Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
-     for (Enumeration e = getOutputStreams(), f = getKeys(); e.hasMoreElements(); ) {
-             
-               //Socket aSocket = (Socket)e.nextElement();
-
-
-                 // ... get the output stream ...
-
-               //DataOutputStream dout = aSocket.getOutputStream();
-
-               DataOutputStream dout = (DataOutputStream)e.nextElement();
-               Socket aSocket = (Socket)f.nextElement();
-                 // ... and send the message
                 try {
-                if(aSocket.getPort() != x )
-                    dout.writeUTF(message + "\t");
+                  dout.writeUTF("ALL" + message);
 
                 } catch( IOException ie )
                 {
                   System.out.println( ie );
                 }
-            }
-         }
-      }
+             }//end if
+         }//end for-loop
+       }//end sync
+     }//end sendToAll method
 
-     // Remove a socket, and it's corresponding output stream, from our
-
-     // list.  This is usually called by a connection thread that has
-
-     // discovered that the connectin to the client is dead.
+     /*
+     Remove a socket, and it's corresponding output stream, from our
+      list.  This is usually called by a connection thread that has
+      discovered that the connectin to the client is dead.
+      */
      void removeConnection(Socket s)
      {
 
         // Synchronize so we don't mess up sendToAll() while it walks
-
         // down the list of all output streamsa
 
-        synchronized( outputStreams ) {
+        synchronized(serverThreads) {
 
         // Tell the world
 
         System.out.println( "Removing connection to "+s );
 
-        // Remove it from our hashtable/list
+        //Remove it from our hashtable/list
 
-        outputStreams.remove( s );
+        //outputStreams.remove( s );
+
+        String username = "";
+        int port;
 
         for(int i = 0; i<size; i++)
         {
-            if(serverThreads.get(i).getSocket().getPort() == s.getPort());
+            port = serverThreads.get(i).getSocket().getPort();
+            
+            if(port == s.getPort())
             {
+                username = serverThreads.get(i).getUsername();
                 serverThreads.remove(i);
+                size--;
                 break;
             }
         }
 
-        size--;
-
+        System.out.println(size);
         // Make sure it's closed
-
         try
         {
-
-           s.close();
-
+            s.close();
         }
         catch( IOException ie )
         {
-
           System.out.println( "Error closing "+s );
-
           ie.printStackTrace();
+        }
+
+        for(int i = 0; i<size; i++)
+        {
+            System.out.println(serverThreads.get(i).getUsername());
 
         }
-     }
-     }
+
+        removeUsername(username);
+        
+      }//end synch
+     }//end removeConnection method
 
      void addUsername(String username)
     {
-        
-        for(int i = 0; i<size;i++)
+        synchronized(serverThreads){
+        for(int i = 0; i<size; i++)
         {
             Socket socket = serverThreads.get(i).getSocket();
             DataOutputStream dout = null;
@@ -246,13 +234,13 @@ public class Server
                   System.out.println( ie );
                 }
 
-        }
-    }
+        }//end for-loop
+        }//end synch
+    }//end addUsername method
 
-     void getUsernames(Socket socket)
+    void getUsernames(Socket socket)
     {
-         for(int i = 0; i<size-1;i++){
-
+        synchronized(serverThreads){
             DataOutputStream dout = null;
 
             try
@@ -264,19 +252,87 @@ public class Server
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-                             // ... and send the message
+            for(int i = 0; i<size;i++){
+            if(serverThreads.get(i).getSocket().getPort() != socket.getPort())
+            {
+                try
+                {
+                    dout.writeUTF("ADDING USERS" + serverThreads.get(i).getUsername());
+
+                }
+                catch( IOException ie )
+                {
+                   System.out.println( ie );
+                }
+            }
+            }//end for-loop
+        }//end synch
+    }//end getUsername method
+
+    void sendSpecific(String message, String senderUserName)
+    {
+        synchronized(serverThreads){
+        for(int i = 0; i<size;i++){
+
+            DataOutputStream dout = null;
+            if(message.startsWith(serverThreads.get(i).getUsername()))
+            {
+                Socket socket = serverThreads.get(i).getSocket();
+                int x = serverThreads.get(i).getUsername().length();
+
+                try
+                {
+                    dout = new DataOutputStream(socket.getOutputStream());
+                }
+                catch (IOException ex)
+                {
+                    Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                // ... and send the message
+                try
+                {
+                    dout.writeUTF(senderUserName + ":" + message.substring(x,message.length()));
+                } catch( IOException ie )
+                {
+                    System.out.println( ie );
+                }
+            }
+        }//end for-loop
+        }//end synch
+    }//end sendSpecific method
+
+    private void removeUsername(String username)
+    {
+     synchronized(serverThreads){
+        for(int i = 0; i<size; i++)
+        {
+            Socket socket = serverThreads.get(i).getSocket();
+            DataOutputStream dout = null;
+
             try
             {
-                dout.writeUTF("ADDING USERS" + serverThreads.get(i).getUsername());
+                dout = new DataOutputStream(socket.getOutputStream());
+            }
+            catch (IOException ex)
+            {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            try
+            {
+                dout.writeUTF("REMOVE USER" + username);
 
             } catch( IOException ie )
                 {
                   System.out.println( ie );
                 }
-        }
-    }
 
-    }//end Server class
+        }//end for-loop
+      }//end synch
+    }//end removeUsername method
+}//end Server class
+
 
 
 
