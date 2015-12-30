@@ -1,0 +1,304 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package chatter;
+
+/**
+ *
+ * @author maggiecelentano
+ */
+import java.applet.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import java.io.*;
+
+import java.net.*;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.DefaultListModel;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+
+public class ClientApplet extends Applet implements Runnable
+{
+   public final static int port = 2400;
+   public final static String host = "localhost";
+
+     // Components for the visual display of the chat windows
+
+    private JTextField tf = new JTextField();
+    private JTextArea ta = new JTextArea(4,30);
+
+    private JTextField loginText = new JTextField();
+    private JTextField loginText2 = new JTextField("Enter a username below");
+    DefaultListModel listModel = new DefaultListModel();
+
+    private Button chatButton = new Button("Change Chat");
+    private int where = 0;
+
+    private ArrayList<JTextArea> panels = new ArrayList<JTextArea>();
+
+    private String username;
+    private int max;
+
+    JList list;
+    JScrollPane listScroller;
+
+   // The socket connecting us to the server
+
+    private Socket socket;
+
+
+    // The streams we communicate to the server; these come
+
+    // from the socket
+
+    private DataOutputStream dout;
+
+    private DataInputStream din;
+
+   public void init()
+   {
+ 
+       list = new JList(listModel);
+       list.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+       list.setLayoutOrientation(JList.VERTICAL);
+       list.setVisibleRowCount(5);
+
+       listScroller = new JScrollPane(list);
+       listModel.addElement("All");
+
+       setLayout( new BorderLayout() );
+
+       loginText2.setEditable(false);
+       loginText2.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+       setBackground(Color.ORANGE);
+       add(loginText2,"North");
+       add(loginText,"South");
+
+       setVisible(true);
+       
+      loginText.addActionListener(new ActionListener()
+      {
+
+         public void actionPerformed(ActionEvent e)
+         {
+            processLogin(e.getActionCommand(),host, port);
+         }
+      });
+
+   }//end Constructor
+
+   public void processLogin(String username, String host, final int port)
+    {
+       try
+       {
+
+         // Initiate the connection
+
+         socket = new Socket(host, port);
+
+         // We got a connection!  Tell the world
+
+         System.out.println("connected to "+socket);
+
+         // Let's grab the streams and create DataInput/Output streams
+        // from them
+
+         din = new DataInputStream(socket.getInputStream());
+
+         dout = new DataOutputStream(socket.getOutputStream());
+
+         // Start a background thread for receiving messages
+
+         new Thread(this).start();
+
+       }
+       catch(IOException ie)
+       {
+         System.out.println( ie );
+       }
+
+        try
+        {
+            dout.writeUTF(username);
+        }
+        catch( IOException ie )
+        {
+            System.out.println( ie );
+        }
+
+      this.username = username;
+      
+      remove(loginText);
+      remove(loginText2);
+
+      ta.setForeground(Color.yellow);
+      ta.setBackground(Color.BLACK);
+      tf.setBackground(Color.GRAY);
+      ta.setLineWrap(true);
+
+      ta.setWrapStyleWord(true);
+      ta.setEditable(false);
+      
+     chatButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+           chatButtonActionPerformed(evt);
+           }
+      });
+
+       panels.add(new JTextArea());
+       //max = 0;
+       panels.get(0).setBackground(Color.black);
+       panels.get(0).setForeground(Color.yellow);
+       
+      add(tf,BorderLayout.PAGE_END);
+      add(ta,BorderLayout.CENTER);
+      add(panels.get(0), BorderLayout.CENTER);
+      add(chatButton,BorderLayout.LINE_END);
+      add(listScroller,BorderLayout.PAGE_START);
+      setBackground(Color.BLACK);
+
+      resize(400,300);
+
+       // We want to receive messages when someone types a line
+      // and hits return, using an anonymous class as
+      // a callback
+
+      tf.addActionListener(new ActionListener()
+      {
+
+         public void actionPerformed(ActionEvent e)
+         {
+             processMessage(e.getActionCommand());
+         }
+      });
+
+   }
+
+    private void chatButtonActionPerformed(ActionEvent e)
+    {
+        
+        int index = list.getSelectedIndex();
+        panels.get(where).setVisible(false);
+        panels.get(index).setVisible(true);
+        panels.get(index).setBackground(Color.black);
+        panels.get(index).setForeground(Color.yellow);
+        add(panels.get(index), BorderLayout.CENTER);
+        int pssh = 1;
+        resize((300+pssh),(200+pssh));
+        where = index;
+    }
+
+    // Gets called when the user types something
+
+    private void processMessage(String message)
+    {
+      try
+      {
+         panels.get(where).append(username + ":" + message + "\n");
+         tf.setText( "" );
+
+         // Send it to the server
+         if(where == 0)
+         {
+            dout.writeUTF(message);
+         }
+         else
+         {
+             dout.writeUTF("SPECIFIC" + listModel.getElementAt(where) + message);
+         }
+      }
+      catch( IOException ie )
+      {
+         System.out.println( ie );
+      }
+    }//end processMessage method
+
+    // Background thread runs this: show messages from other window
+
+    public void run()
+    {
+      try
+      {
+
+         // Receive messages one-by-one, forever
+
+         while(true)
+         {
+
+            // Get the next message
+
+            String message = din.readUTF();
+
+            if(message.length() >= 8 && message.substring(0,8).equals("NEW USER"))
+            {
+                listModel.addElement(message.substring(8,message.length()));
+                panels.add(new JTextArea());
+            }
+            else if(message.length() >= 12 && message.substring(0,12).equals("ADDING USERS"))
+            {
+                listModel.addElement(message.substring(12,message.length()));
+                panels.add(new JTextArea());
+            }
+            else if(message.length() >= 11 && message.substring(0,11).equals("REMOVE USER"))
+            {
+                for(int i = 0; i<listModel.size(); i++)
+                {
+                    if(listModel.getElementAt(i).equals(message.substring(11,message.length())))
+                    {
+                        if(i == where)
+                        {
+                            panels.get(i).setVisible(false);
+                            panels.get(0).setVisible(true);
+                            where = 0;
+                        }
+                        listModel.remove(i);
+                        panels.remove(i);
+                        break;
+                    }
+                }
+            }
+            // Print it to our text window
+             else if(message.startsWith("ALL"))
+            {
+                panels.get(0).append(message.substring(3,message.length()) + "\n");
+            }
+            else{
+                for(int i = 0; i<listModel.size(); i++)
+                {
+                    if(message.startsWith((String) listModel.getElementAt(i)))
+                    {
+                        panels.get(i).append(message + "\n");
+                        break;
+                    }
+                }
+            }
+
+         }//end while-loop
+
+      }//end try
+      catch( IOException ie )
+      {
+         System.out.println( ie );
+      }
+
+    }//end run method
+
+    public String getUsername()
+    {
+        return this.username;
+    }
+}
