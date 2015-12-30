@@ -25,21 +25,22 @@ public class ServerThread extends Thread
    //the scoket connected to our client
    private Socket socket;
    private String username;
+   private DataOutputStream dout;
 
 
 
     // Constructor.
 
-   public ServerThread(Server server, Socket socket)
+   public ServerThread(Server server, Socket socket, DataOutputStream dout)
    {
 
       // Save the parameters
       Scanner kb = new Scanner(System.in);
       this.server = server;
-
       this.socket = socket;
+      this.dout = dout;
 
-      this.username = "UNAVAILABLE";
+      //this.username = "UNAVAILABLE";
 
       // Start up the thread
       start();
@@ -73,6 +74,10 @@ public class ServerThread extends Thread
                 server.getUsernames(socket);
                 counter++;
             }
+            else if(message.length() >=8 && message.substring(0,8).equals("SPECIFIC"))
+            {
+                server.sendSpecific(message.substring(8, message.length()), username);
+            }
             else
             {
                 // ... tell the world ...
@@ -86,7 +91,6 @@ public class ServerThread extends Thread
       }
       catch(EOFException ie)
       {
-
          System.out.println("noooo!");
       }
       catch(IOException ie)
@@ -113,14 +117,13 @@ public class ServerThread extends Thread
        return this.username;
    }
 
-    Socket getSocket() {
+    Socket getSocket()
+    {
         return this.socket;
     }
 
 
 }//end ServerThread class
-
-
 
 
 
