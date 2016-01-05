@@ -18,6 +18,8 @@ import java.awt.event.*;
 import java.io.*;
 
 import java.net.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -36,7 +38,7 @@ public class Client implements Runnable
     private JTextField loginText2 = new JTextField("Enter a username below");
     DefaultListModel listModel = new DefaultListModel();
 
-    private Button chatButton;
+    private Button chatButton = new Button("Start new chat");
 
     private String[] users = new String[5];
 
@@ -47,6 +49,8 @@ public class Client implements Runnable
    // The socket connecting us to the server
 
     private Socket socket;
+
+    private JFrame frame2 = new JFrame("Chatter");
 
     // The streams we communicate to the server; these come
 
@@ -61,6 +65,30 @@ public class Client implements Runnable
 
    public Client(final String host, final int port)
    {
+
+
+       loginText2.setEditable(false);
+       loginText2.setFont(new Font("SansSerif", Font.BOLD, 20));
+       loginText.setBackground(Color.ORANGE);
+       loginFrame.setMinimumSize(new Dimension(275, 100));
+       loginFrame.add("South", loginText);
+       loginFrame.add("North",loginText2);
+       loginFrame.setVisible(true);
+
+      loginText.addActionListener(new ActionListener()
+      {
+
+         public void actionPerformed(ActionEvent e)
+         {
+
+             processLogin(e.getActionCommand(),host, port);
+         }
+      });
+
+   }//end Constructor
+
+   public void processLogin(String username, String host, final int port)
+    {
        try
        {
 
@@ -92,28 +120,6 @@ public class Client implements Runnable
          System.out.println( ie );
        }
 
-       loginText2.setEditable(false);
-       loginText2.setFont(new Font("SansSerif", Font.BOLD, 20));
-       loginText.setBackground(Color.ORANGE);
-       loginFrame.setMinimumSize(new Dimension(275, 100));
-       loginFrame.add("South", loginText);
-       loginFrame.add("North",loginText2);
-       loginFrame.setVisible(true);
-
-      loginText.addActionListener(new ActionListener()
-      {
-
-         public void actionPerformed(ActionEvent e)
-         {
-
-             processLogin(e.getActionCommand());
-         }
-      });
-
-   }//end Constructor
-
-   private void processLogin(String username)
-    {
         try
         {
             dout.writeUTF(username);
@@ -146,29 +152,25 @@ public class Client implements Runnable
       ta.setEditable(false);
       //ta.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 
+      chatButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+           chatButtonActionPerformed(evt);
+           }
+      });
+
+
       frame.setPreferredSize(new Dimension(300, 200));
-
       frame.setLayout(new BorderLayout());
-
       frame.add( "South", tf );
-
+      frame.add("East", chatButton);
       frame.add( "Center", ta );
-
       frame.add("North",listScroller);
-
-      //What happens when the frame closes?
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-
-      //Size the frame.
       frame.pack();
-
       frame.setVisible(true);
 
       // We want to receive messages when someone types a line
-
       // and hits return, using an anonymous class as
-
       // a callback
 
       tf.addActionListener(new ActionListener()
@@ -176,13 +178,26 @@ public class Client implements Runnable
 
          public void actionPerformed(ActionEvent e)
          {
-
              processMessage(e.getActionCommand());
          }
       });
 
        // Connect to the server
    }
+
+    private void chatButtonActionPerformed(ActionEvent e)
+    {
+        String message ="SPECIFIC";
+        int index = list.getSelectedIndex();
+        String name = (String) listModel.getElementAt(index);
+        frame2.setVisible(true);
+        
+        try {
+            dout.writeUTF(message + name);
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
 
     // Gets called when the user types something
@@ -197,7 +212,6 @@ public class Client implements Runnable
          dout.writeUTF( message );
 
          // Clear out text input field
-         ta.append("\t\t" + message + "\n");
          tf.setText( "" );
       }
       catch( IOException ie )
@@ -230,6 +244,18 @@ public class Client implements Runnable
             {
                 listModel.addElement(message.substring(12,message.length()));
             }
+            else if(message.length() >= 11 && message.substring(0,11).equals("REMOVE USER"))
+            {
+                for(int i = 0; i<listModel.size(); i++)
+                {
+                    if(listModel.getElementAt(i).equals(message.substring(11,message.length())))
+                    {
+                        listModel.remove(i);
+                        break;
+                    }
+                }
+            }
+
             // Print it to our text window
             else
                 ta.append(message + "\n");
@@ -255,8 +281,4 @@ public class Client implements Runnable
 
     }
 }//end Client class
-
-
-
-
 
