@@ -224,7 +224,6 @@ public class Server
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-                             // ... and send the message
             try
             {
                 dout.writeUTF("NEW USER" + username);
@@ -289,7 +288,6 @@ public class Server
                     Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
-                // ... and send the message
                 try
                 {
                     dout.writeUTF(senderUserName + ":" + message.substring(x,message.length()));
@@ -332,10 +330,4 @@ public class Server
       }//end synch
     }//end removeUsername method
 }//end Server class
-
-
-
-
-
-
 
