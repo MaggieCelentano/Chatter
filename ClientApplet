@@ -302,3 +302,4 @@ public class ClientApplet extends Applet implements Runnable
         return this.username;
     }
 }
+
